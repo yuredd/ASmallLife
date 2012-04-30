@@ -1,0 +1,3 @@
+javac -d bin -cp bin/:libs/* src/*.java
+
+java -cp .:bin/:libs/* com.yuredd.asmalllife.ASmallLifeDesktop
