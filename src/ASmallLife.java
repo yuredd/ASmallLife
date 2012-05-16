@@ -5,12 +5,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.GL11;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.g3d.loaders.obj.ObjLoader;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
+import com.badlogic.gdx.math.Vector3;
 
 import com.bulletphysics.collision.broadphase.AxisSweep3;
 import com.bulletphysics.collision.dispatch.CollisionConfiguration;
@@ -18,6 +20,7 @@ import com.bulletphysics.collision.dispatch.CollisionDispatcher;
 import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration;
 import com.bulletphysics.collision.shapes.BoxShape;
+import com.bulletphysics.collision.shapes.IndexedMesh;
 import com.bulletphysics.collision.shapes.CollisionShape;
 import com.bulletphysics.collision.shapes.SphereShape;
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
@@ -27,9 +30,16 @@ import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSo
 import com.bulletphysics.linearmath.DefaultMotionState;
 import com.bulletphysics.linearmath.Transform;
 import com.bulletphysics.util.ObjectArrayList;
-import com.badlogic.gdx.math.Vector3;
-import java.nio.FloatBuffer;
 import javax.vecmath.Vector3f;
+import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
+import java.nio.IntBuffer;
+import java.nio.ByteBuffer;
+import com.sun.opengl.util.BufferUtil;
+
+
+import com.bulletphysics.collision.shapes.BvhTriangleMeshShape;
+import com.bulletphysics.collision.shapes.TriangleIndexVertexArray;
 
 import com.badlogic.gdx.graphics.g3d.loaders.md5.MD5Animation;
 import com.badlogic.gdx.graphics.g3d.loaders.md5.MD5AnimationInfo;
@@ -50,6 +60,7 @@ public class ASmallLife implements ApplicationListener
 	// camera, geometry and textures
 	private PerspectiveCamera cam;
 	private Mesh walls;
+	private Mesh walls_wire;
 	private Mesh floor;
 	private Mesh hero;
 
@@ -66,15 +77,20 @@ public class ASmallLife implements ApplicationListener
 	private Texture floortex;
 	private Texture giggiotex;
 
-	private int animchoose = 1;
+	float movex = 0f;
+	float movey = 0f;
+	float movez = 0f;
+	float rotx = 0f;
+	float roty = 0f;
+
 
 	private void handleInput() {
 
-		float movex = 0f;
-		float movey = 0f;
-		float movez = 0f;
-		float rotx = 0f;
-		float roty = 0f;
+		movex = 0f;
+		movey = 0f;
+		movez = 0f;
+		rotx = 0f;
+		roty = 0f;
 
     CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(1);
     RigidBody body = RigidBody.upcast(obj);
@@ -85,27 +101,107 @@ public class ASmallLife implements ApplicationListener
 		if(Gdx.input.isKeyPressed(Input.Keys.DOWN)) movez = -0.1f;
 		if(Gdx.input.isKeyPressed(Input.Keys.UP)) movez = 0.1f;
 
-		if(Gdx.input.isKeyPressed(Input.Keys.NUM_1)) animchoose = 1;
-		if(Gdx.input.isKeyPressed(Input.Keys.NUM_2)) animchoose = 2;
-
 		body.applyImpulse(new Vector3f(movex,0f,movez), new Vector3f(0f,0f,0f));
+
+	}
+
+
+
+
+	public void addMesh(Mesh mesh, float x, float y, float z) {
+
+System.out.println("V: " + mesh.getNumVertices() + " I: " + mesh.getNumIndices() + " S: " + mesh.getVertexSize());
+
+		TriangleIndexVertexArray jBulletMeshData = new TriangleIndexVertexArray();
+
+    IndexedMesh jBulletIndexedMesh = new IndexedMesh();
+    jBulletIndexedMesh.triangleIndexBase = ByteBuffer.allocate( mesh.getNumVertices() * 4 );
+    jBulletIndexedMesh.vertexBase = ByteBuffer.allocate( mesh.getNumVertices() * 3 * 4 );
+
+System.out.println("STEP #1 - Creazione Vertex Buffer");
+
+    FloatBuffer vertices = mesh.getVerticesBuffer();
+    vertices.rewind();
+
+    jBulletIndexedMesh.numVertices = mesh.getNumVertices();
+    jBulletIndexedMesh.vertexStride = 12; //3 verts * 4 bytes per.
+
+		float t1,t2,t3;
+		int i;
+
+
+    for ( i = 0; i < mesh.getNumVertices() * 3; i += 3 ) {
+      t1 = vertices.get();
+      jBulletIndexedMesh.vertexBase.putFloat( t1 );
+      t2 = vertices.get();
+      jBulletIndexedMesh.vertexBase.putFloat( t2 );
+      t3 = vertices.get();
+      jBulletIndexedMesh.vertexBase.putFloat( t3 );
+
+    }
+
+System.out.println("v: " + i);
+
+System.out.println("STEP #2 - Creazione Index Buffer");
+
+    jBulletIndexedMesh.numTriangles = 1; //mesh.getNumVertices() / 3;
+    jBulletIndexedMesh.triangleIndexStride = 12; //3 index entries * 4 bytes each.
+    for ( i = 0; i < mesh.getNumVertices(); i++ ) {
+    	jBulletIndexedMesh.triangleIndexBase.putInt( i );
+    }
+
+System.out.println("i: " + i);
+
+    jBulletMeshData.addIndexedMesh( jBulletIndexedMesh );
+
+		boolean useQuantizedAabbCompression = true;
+
+		BvhTriangleMeshShape shape;
+
+System.out.println("STEP #3 - Creazione Physics Shape dalla Mesh");
+
+
+		shape = new BvhTriangleMeshShape(jBulletMeshData,true);
+
+		collisionShapes.add(shape);
+    Transform shapeTransform = new Transform();
+		Vector3f localInertia = new Vector3f(0, 0, 0);
+    shapeTransform.setIdentity();
+    shapeTransform.origin.set(new Vector3f(x, y, z));
+		DefaultMotionState myMotionState = new DefaultMotionState(shapeTransform);
+		RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
+          0f, myMotionState, shape, localInertia);
+		RigidBody body = new RigidBody(rbInfo);
+		dynamicsWorld.addRigidBody(body);
+
+System.out.println("STEP #4 - Fine");
+
+//draw physics wireframe
+
+//float[] testv = jBulletIndexedMesh.vertexBase.asFloatBuffer().array();
+//System.out.println("babababa: " + testv[3]);
+
+//walls_wire = new Mesh(true, mesh.getNumVertices(), mesh.getNumVertices(), 
+//                    new VertexAttribute(Usage.Position, 3, "a_position"));
+//walls_wire.setVertices(jBulletIndexedMesh.vertexBase.asFloatBuffer().array());
+//walls_wire.setIndices(jBulletIndexedMesh.triangleIndexBase.asShortBuffer().array());
 
 	}
 
   public void addCrate(float x, float y, float z) {
 
-		addBox(x,y,z,0.5f,0.5f,0.5f,0.5f);
+		addBox(x,y,z,0.5f,0.5f,0.5f,1f,0.4f);
 
 	}
 
-  public void addBox(float x, float y, float z, float lenx, float leny, float lenz, float mass) {
+  public void addBox(float x, float y, float z, float lenx, float leny, float lenz, float mass, float inertia) {
 
 		CollisionShape shape = new BoxShape(new Vector3f(lenx, leny, lenz));
 //		CollisionShape shape = new SphereShape(0.25f);
 		collisionShapes.add(shape);
     Transform shapeTransform = new Transform();
-		Vector3f localInertia = new Vector3f(0, 0, 0);
-		shape.calculateLocalInertia(mass, localInertia);
+		Vector3f localInertia = new Vector3f(inertia, inertia, inertia);
+//		shape.calculateLocalInertia(mass, localInertia);
     shapeTransform.setIdentity();
     shapeTransform.origin.set(new Vector3f(x, y, z));
 		DefaultMotionState myMotionState = new DefaultMotionState(shapeTransform);
@@ -140,6 +236,7 @@ public class ASmallLife implements ApplicationListener
 		walls = ObjLoader.loadObj(Gdx.files.internal("data/level1.obj").read(), true);
 		floor = ObjLoader.loadObj(Gdx.files.internal("data/level1floor.obj").read(), true);
 
+
 		hero = ObjLoader.loadObj(Gdx.files.internal("data/herotest.obj").read(), true);
 		crate = ObjLoader.loadObj(Gdx.files.internal("data/objecttest.obj").read(), true);
 
@@ -161,9 +258,13 @@ public class ASmallLife implements ApplicationListener
 		renderer.setSkeleton(giggio.baseSkeleton);
 
 		wallstex = new Texture(Gdx.files.internal("data/paper-grey.png"));
+		wallstex.setWrap( TextureWrap.Repeat, TextureWrap.Repeat );
+
 		floortex = new Texture(Gdx.files.internal("data/marble-pink.png"));
+		floortex.setWrap( TextureWrap.Repeat, TextureWrap.Repeat );
 
 		cratetex = new Texture(Gdx.files.internal("data/textest.png"));
+		cratetex.setWrap( TextureWrap.Repeat, TextureWrap.Repeat );
 
 		giggiotex = new Texture(Gdx.files.internal("data/giggio.png"));
 
@@ -184,39 +285,42 @@ public class ASmallLife implements ApplicationListener
 		//creazione oggetti
 
 //		addCrate(0,1f,0); eroe
-		addBox(0,2f,0, 0.5f,1.5f,0.5f, 0.5f);
+		addBox(0,2f,0, 0.5f,1.5f,0.5f, 0.5f,0f);
 
 
-		addCrate(5,1f,2);
-		addCrate(6.1f,1f,2);
-		addCrate(7.2f,1f,2);
+		addCrate(5,1f,5);
+		addCrate(6.1f,1f,5);
+		addCrate(7.2f,1f,5);
 
-		addCrate(5.5f,2f,2);
-		addCrate(6.6f,2f,2);
+		addCrate(5.5f,2f,5);
+		addCrate(6.6f,2f,5);
 
-		addCrate(6.1f,3f,2);
+		addCrate(6.1f,3f,5);
 
 
-		addCrate(8f,1f,2);
-		addCrate(8f,2f,2);
-		addCrate(8f,3f,2);
-		addCrate(8f,4f,2);
-		addCrate(8f,5f,2);
-		addCrate(8f,6f,2);
-		addCrate(8f,7f,2);
-		addCrate(8f,8f,2);
-		addCrate(8f,9f,2);
-		addCrate(8f,10f,2);
-		addCrate(8f,11f,2);
-		addCrate(8f,12f,2);
-		addCrate(8f,13f,2);
-		addCrate(8f,14f,2);
-		addCrate(8f,15f,2);
-		addCrate(8f,16f,2);
-		addCrate(8f,17f,2);
-		addCrate(8f,18f,2);
-		addCrate(8f,19f,2);
-		addCrate(8f,20f,2);
+		addCrate(8f,1f,5);
+		addCrate(8f,2f,5);
+		addCrate(8f,3f,5);
+		addCrate(8f,4f,5);
+		addCrate(8f,5f,5);
+		addCrate(8f,6f,5);
+		addCrate(8f,7f,5);
+		addCrate(8f,8f,5);
+		addCrate(8f,9f,5);
+		addCrate(8f,10f,5);
+		addCrate(8f,11f,5);
+		addCrate(8f,12f,5);
+		addCrate(8f,13f,5);
+		addCrate(8f,14f,5);
+		addCrate(8f,15f,5);
+		addCrate(8f,16f,5);
+		addCrate(8f,17f,5);
+		addCrate(8f,18f,5);
+		addCrate(8f,19f,5);
+		addCrate(8f,20f,5);
+
+		addMesh(walls, 0, 0, 0);
+
 
 		// OpenGL enable functions
 		GL11 gl = Gdx.graphics.getGL11(); 
@@ -257,7 +361,6 @@ public class ASmallLife implements ApplicationListener
   @Override
   public void render() {
 
-//		FloatBuffer floatBuffer = BufferUtil.newFloatBuffer(16);
 		GL11 gl = Gdx.graphics.getGL11(); 
 		float[] tmp = new float[16];
 
@@ -268,15 +371,25 @@ public class ASmallLife implements ApplicationListener
 
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
 
-
-		
+		Vector3 vec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+		cam.unproject(vec);
+		cratetex.bind();
+		gl.glPushMatrix();
+		gl.glTranslatef(vec.x, vec.y, vec.z);
+		crate.render(gl.GL_TRIANGLES);
+		gl.glPopMatrix();
+				
 
 		floortex.bind();
 					floor.render(gl.GL_TRIANGLES);
+
+//gl.glColor4f(1, 0, 0, 1);
+//gl.glDisableClientState(gl.GL_COLOR_ARRAY);
+//walls_wire.render(gl.GL_TRIANGLES);
+
+
 		wallstex.bind();
 					walls.render(gl.GL_TRIANGLES);
-
-//		level.render(gl.GL_TRIANGLES);
 
     for (int j=dynamicsWorld.getNumCollisionObjects()-1; j>=1; j--) {
     	CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(j);
@@ -293,28 +406,32 @@ public class ASmallLife implements ApplicationListener
 
 				trans.getOpenGLMatrix(tmp);
 				gl.glMultMatrixf(FloatBuffer.wrap(tmp));
+
 				if(j == 1) {
 
-				gl.glRotatef(-90f,1f,0f,0f);
-
+					gl.glRotatef(-90f,1f,0f,0f);
 					giggiotex.bind();
 
-if(animchoose == 1) {
-					giggiogratinfo.update(Gdx.graphics.getDeltaTime());
-					MD5Animation.interpolate(giggiograt.frames[giggiogratinfo.getCurrentFrame()], giggiograt.frames[giggiogratinfo.getNextFrame()], 
-					 giggioskeleton, giggiogratinfo.getInterpolation());
-} else if(animchoose == 2) {
-					giggiowalkinfo.update(Gdx.graphics.getDeltaTime());
-					MD5Animation.interpolate(giggiowalk.frames[giggiowalkinfo.getCurrentFrame()], giggiowalk.frames[giggiowalkinfo.getNextFrame()], 
-					 giggioskeleton, giggiowalkinfo.getInterpolation());
-}
+					if(movex + movez == 0) {
+						giggiogratinfo.update(Gdx.graphics.getDeltaTime());
+						MD5Animation.interpolate(giggiograt.frames[giggiogratinfo.getCurrentFrame()], giggiograt.frames[giggiogratinfo.getNextFrame()], 
+						 giggioskeleton, giggiogratinfo.getInterpolation());
+					} else {
+						giggiowalkinfo.update(Gdx.graphics.getDeltaTime());
+						MD5Animation.interpolate(giggiowalk.frames[giggiowalkinfo.getCurrentFrame()], giggiowalk.frames[giggiowalkinfo.getNextFrame()], 
+						 giggioskeleton, giggiowalkinfo.getInterpolation());
+					}
 					renderer.setSkeleton(giggioskeleton);
 					renderer.render();
 
 					cratetex.bind();
 
 				} else {
+
+					cratetex.bind();
+
 					crate.render(gl.GL_TRIANGLES);
+
 				}
 
 				gl.glPopMatrix();
