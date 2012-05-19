@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.GL11;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.g3d.loaders.obj.ObjLoader;
+
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.math.Vector3;
 
@@ -62,7 +63,6 @@ public class ASmallLife implements ApplicationListener
 	private Mesh walls;
 	private Mesh walls_wire;
 	private Mesh floor;
-	private Mesh hero;
 
 	private MD5Model giggio;
 	private MD5Joints giggioskeleton;
@@ -118,6 +118,9 @@ System.out.println("V: " + mesh.getNumVertices() + " I: " + mesh.getNumIndices()
     jBulletIndexedMesh.triangleIndexBase = ByteBuffer.allocate( mesh.getNumVertices() * 4 );
     jBulletIndexedMesh.vertexBase = ByteBuffer.allocate( mesh.getNumVertices() * 3 * 4 );
 
+
+walls_wire = new Mesh(true, mesh.getNumVertices(), mesh.getNumVertices(), new VertexAttribute(Usage.Position, 3, "a_position"));    
+
 System.out.println("STEP #1 - Creazione Vertex Buffer");
 
     FloatBuffer vertices = mesh.getVerticesBuffer();
@@ -129,8 +132,9 @@ System.out.println("STEP #1 - Creazione Vertex Buffer");
 		float t1,t2,t3;
 		int i;
 
+float[] vertf = new float[mesh.getNumVertices() * 3];
 
-    for ( i = 0; i < mesh.getNumVertices() * 3; i += 3 ) {
+    for ( i = 0; i < mesh.getNumVertices(); i++ ) {
       t1 = vertices.get();
       jBulletIndexedMesh.vertexBase.putFloat( t1 );
       t2 = vertices.get();
@@ -138,17 +142,37 @@ System.out.println("STEP #1 - Creazione Vertex Buffer");
       t3 = vertices.get();
       jBulletIndexedMesh.vertexBase.putFloat( t3 );
 
+vertf[(i*3) + 0] = t1; vertf[(i*3) + 1] = t2; vertf[(i*3) + 2] = t3;
+
+      t3 = vertices.get();
+      t3 = vertices.get();
+      t3 = vertices.get();
+
+      t3 = vertices.get();
+      t3 = vertices.get();
+
     }
 
-System.out.println("v: " + i);
+walls_wire.setVertices(vertf);
+
+System.out.println("CAP: " + vertices.position() + ":" + vertices.capacity() + " OF " + mesh.getNumVertices());
+
+System.out.println("v: " + (i/3));
 
 System.out.println("STEP #2 - Creazione Index Buffer");
 
-    jBulletIndexedMesh.numTriangles = 1; //mesh.getNumVertices() / 3;
+short[] indexs = new short[mesh.getNumVertices()];
+
+    jBulletIndexedMesh.numTriangles = mesh.getNumVertices() / 3;
     jBulletIndexedMesh.triangleIndexStride = 12; //3 index entries * 4 bytes each.
     for ( i = 0; i < mesh.getNumVertices(); i++ ) {
     	jBulletIndexedMesh.triangleIndexBase.putInt( i );
+
+indexs[i] = (short) i;
+
     }
+
+walls_wire.setIndices(indexs);
 
 System.out.println("i: " + i);
 
@@ -162,6 +186,7 @@ System.out.println("STEP #3 - Creazione Physics Shape dalla Mesh");
 
 
 		shape = new BvhTriangleMeshShape(jBulletMeshData,true);
+		shape.recalcLocalAabb();
 
 		collisionShapes.add(shape);
     Transform shapeTransform = new Transform();
@@ -175,16 +200,6 @@ System.out.println("STEP #3 - Creazione Physics Shape dalla Mesh");
 		dynamicsWorld.addRigidBody(body);
 
 System.out.println("STEP #4 - Fine");
-
-//draw physics wireframe
-
-//float[] testv = jBulletIndexedMesh.vertexBase.asFloatBuffer().array();
-//System.out.println("babababa: " + testv[3]);
-
-//walls_wire = new Mesh(true, mesh.getNumVertices(), mesh.getNumVertices(), 
-//                    new VertexAttribute(Usage.Position, 3, "a_position"));
-//walls_wire.setVertices(jBulletIndexedMesh.vertexBase.asFloatBuffer().array());
-//walls_wire.setIndices(jBulletIndexedMesh.triangleIndexBase.asShortBuffer().array());
 
 	}
 
@@ -236,13 +251,7 @@ System.out.println("STEP #4 - Fine");
 		walls = ObjLoader.loadObj(Gdx.files.internal("data/level1.obj").read(), true);
 		floor = ObjLoader.loadObj(Gdx.files.internal("data/level1floor.obj").read(), true);
 
-
-		hero = ObjLoader.loadObj(Gdx.files.internal("data/herotest.obj").read(), true);
 		crate = ObjLoader.loadObj(Gdx.files.internal("data/objecttest.obj").read(), true);
-
-		BoundingBox bb = crate.calculateBoundingBox();
-		System.out.println("BB crate " + bb.min.x + "::" + bb.min.y + "::" + bb.min.z);
-		System.out.println("BB crate " + bb.max.x + "::" + bb.max.y + "::" + bb.max.z);
 
 		giggio = MD5Loader.loadModel(Gdx.files.internal("data/giggio.md5mesh").read(), false);
 		giggiograt = MD5Loader.loadAnimation(Gdx.files.internal("data/giggio.md5anim").read());
@@ -284,8 +293,9 @@ System.out.println("STEP #4 - Fine");
 
 		//creazione oggetti
 
-//		addCrate(0,1f,0); eroe
-		addBox(0,2f,0, 0.5f,1.5f,0.5f, 0.5f,0f);
+//		eroe
+//		addBox(0,2f,0, 0.5f,1.5f,0.4f, 0.4f,0f);
+		addBox(0,2f,0, 0.4f,0.5f,0.4f, 0.4f,0f);
 
 
 		addCrate(5,1f,5);
@@ -319,6 +329,16 @@ System.out.println("STEP #4 - Fine");
 		addCrate(8f,19f,5);
 		addCrate(8f,20f,5);
 
+
+		addCrate(1f,4f,8);
+		addCrate(3f,4f,2);
+		addCrate(-4f,4f,3);
+		addCrate(3f,4f,6);
+		addCrate(0f,4f,1);
+		addCrate(3f,4f,2);
+		addCrate(4f,4f,5);
+
+
 		addMesh(walls, 0, 0, 0);
 
 
@@ -327,6 +347,9 @@ System.out.println("STEP #4 - Fine");
 		gl.glEnable(gl.GL_TEXTURE_2D);  
 		gl.glEnable(gl.GL_DEPTH_TEST);
 		gl.glEnable(gl.GL_BLEND);
+
+// wireframe mode
+// gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
 
 		System.out.println("Starting...");
   }
@@ -371,25 +394,22 @@ System.out.println("STEP #4 - Fine");
 
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
 
+// test mouse pointer ================
 		Vector3 vec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
 		cam.unproject(vec);
 		cratetex.bind();
 		gl.glPushMatrix();
 		gl.glTranslatef(vec.x, vec.y, vec.z);
-		crate.render(gl.GL_TRIANGLES);
+//		crate.render(gl.GL_TRIANGLES);
 		gl.glPopMatrix();
-				
+// ===================================				
 
 		floortex.bind();
 					floor.render(gl.GL_TRIANGLES);
 
-//gl.glColor4f(1, 0, 0, 1);
-//gl.glDisableClientState(gl.GL_COLOR_ARRAY);
-//walls_wire.render(gl.GL_TRIANGLES);
-
-
 		wallstex.bind();
 					walls.render(gl.GL_TRIANGLES);
+//					walls_wire.render(gl.GL_TRIANGLES);
 
     for (int j=dynamicsWorld.getNumCollisionObjects()-1; j>=1; j--) {
     	CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(j);
