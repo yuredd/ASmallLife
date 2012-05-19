@@ -92,8 +92,8 @@ public class ASmallLife implements ApplicationListener
 		rotx = 0f;
 		roty = 0f;
 
-		CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(1);
-		RigidBody body = RigidBody.upcast(obj);
+    CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(1);
+    RigidBody body = RigidBody.upcast(obj);
 
 		// rileva gli eventi di tastiera
 		if(Gdx.input.isKeyPressed(Input.Keys.LEFT)) movex = 0.1f;
@@ -110,35 +110,30 @@ public class ASmallLife implements ApplicationListener
 
 	public void addMesh(Mesh mesh, float x, float y, float z) {
 
-		System.out.println("V: " + mesh.getNumVertices() + " I: " + mesh.getNumIndices() + " S: " + mesh.getVertexSize());
+System.out.println("V: " + mesh.getNumVertices() + " I: " + mesh.getNumIndices() + " S: " + mesh.getVertexSize());
 
 		TriangleIndexVertexArray jBulletMeshData = new TriangleIndexVertexArray();
 
-		IndexedMesh jBulletIndexedMesh = new IndexedMesh();
-		jBulletIndexedMesh.triangleIndexBase = ByteBuffer.allocate( mesh.getNumVertices() * 4 );
-		jBulletIndexedMesh.vertexBase = ByteBuffer.allocate( mesh.getNumVertices() * 3 * 4 );
+    IndexedMesh jBulletIndexedMesh = new IndexedMesh();
+    jBulletIndexedMesh.triangleIndexBase = ByteBuffer.allocate( mesh.getNumVertices() * 4 );
+    jBulletIndexedMesh.vertexBase = ByteBuffer.allocate( mesh.getNumVertices() * 3 * 4 );
 
-<<<<<<< HEAD
 
 walls_wire = new Mesh(true, mesh.getNumVertices(), mesh.getNumVertices(), new VertexAttribute(Usage.Position, 3, "a_position"));    
 
 System.out.println("STEP #1 - Creazione Vertex Buffer");
-=======
-		System.out.println("STEP #1 - Creazione Vertex Buffer");
->>>>>>> 70d82e61e16d4ec62336ca16eee2cc5aa5d89ffd
 
-		FloatBuffer vertices = mesh.getVerticesBuffer();
-		vertices.rewind();
+    FloatBuffer vertices = mesh.getVerticesBuffer();
+    vertices.rewind();
 
-		jBulletIndexedMesh.numVertices = mesh.getNumVertices();
-		jBulletIndexedMesh.vertexStride = 12; //3 verts * 4 bytes per.
+    jBulletIndexedMesh.numVertices = mesh.getNumVertices();
+    jBulletIndexedMesh.vertexStride = 12; //3 verts * 4 bytes per.
 
 		float t1,t2,t3;
 		int i;
 
 float[] vertf = new float[mesh.getNumVertices() * 3];
 
-<<<<<<< HEAD
     for ( i = 0; i < mesh.getNumVertices(); i++ ) {
       t1 = vertices.get();
       jBulletIndexedMesh.vertexBase.putFloat( t1 );
@@ -163,24 +158,9 @@ walls_wire.setVertices(vertf);
 System.out.println("CAP: " + vertices.position() + ":" + vertices.capacity() + " OF " + mesh.getNumVertices());
 
 System.out.println("v: " + (i/3));
-=======
-		for ( i = 0; i < mesh.getNumVertices() * 3; i += 3 ) {
 
-			t1 = vertices.get();
-			jBulletIndexedMesh.vertexBase.putFloat( t1 );
-			t2 = vertices.get();
-			jBulletIndexedMesh.vertexBase.putFloat( t2 );
-			t3 = vertices.get();
-			jBulletIndexedMesh.vertexBase.putFloat( t3 );
+System.out.println("STEP #2 - Creazione Index Buffer");
 
-		}
-
-		System.out.println("v: " + i);
->>>>>>> 70d82e61e16d4ec62336ca16eee2cc5aa5d89ffd
-
-		System.out.println("STEP #2 - Creazione Index Buffer");
-
-<<<<<<< HEAD
 short[] indexs = new short[mesh.getNumVertices()];
 
     jBulletIndexedMesh.numTriangles = mesh.getNumVertices() / 3;
@@ -195,40 +175,31 @@ indexs[i] = (short) i;
 walls_wire.setIndices(indexs);
 
 System.out.println("i: " + i);
-=======
-		jBulletIndexedMesh.numTriangles = 1; //mesh.getNumVertices() / 3;
-		jBulletIndexedMesh.triangleIndexStride = 12; //3 index entries * 4 bytes each.
-		for ( i = 0; i < mesh.getNumVertices(); i++ ) {
-			jBulletIndexedMesh.triangleIndexBase.putInt( i );
-		}
 
-		System.out.println("i: " + i);
->>>>>>> 70d82e61e16d4ec62336ca16eee2cc5aa5d89ffd
-
-		jBulletMeshData.addIndexedMesh( jBulletIndexedMesh );
+    jBulletMeshData.addIndexedMesh( jBulletIndexedMesh );
 
 		boolean useQuantizedAabbCompression = true;
 
 		BvhTriangleMeshShape shape;
 
-		System.out.println("STEP #3 - Creazione Physics Shape dalla Mesh");
+System.out.println("STEP #3 - Creazione Physics Shape dalla Mesh");
 
 
 		shape = new BvhTriangleMeshShape(jBulletMeshData,true);
 		shape.recalcLocalAabb();
 
 		collisionShapes.add(shape);
-		Transform shapeTransform = new Transform();
+    Transform shapeTransform = new Transform();
 		Vector3f localInertia = new Vector3f(0, 0, 0);
-		shapeTransform.setIdentity();
-		shapeTransform.origin.set(new Vector3f(x, y, z));
+    shapeTransform.setIdentity();
+    shapeTransform.origin.set(new Vector3f(x, y, z));
 		DefaultMotionState myMotionState = new DefaultMotionState(shapeTransform);
 		RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-			0f, myMotionState, shape, localInertia);
+          0f, myMotionState, shape, localInertia);
 		RigidBody body = new RigidBody(rbInfo);
 		dynamicsWorld.addRigidBody(body);
 
-		System.out.println("STEP #4 - Fine");
+System.out.println("STEP #4 - Fine");
 
 	}
 
@@ -246,11 +217,11 @@ System.out.println("i: " + i);
     Transform shapeTransform = new Transform();
 		Vector3f localInertia = new Vector3f(inertia, inertia, inertia);
 //		shape.calculateLocalInertia(mass, localInertia);
-		shapeTransform.setIdentity();
-		shapeTransform.origin.set(new Vector3f(x, y, z));
+    shapeTransform.setIdentity();
+    shapeTransform.origin.set(new Vector3f(x, y, z));
 		DefaultMotionState myMotionState = new DefaultMotionState(shapeTransform);
 		RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-      	mass, myMotionState, shape, localInertia);
+          mass, myMotionState, shape, localInertia);
 		RigidBody body = new RigidBody(rbInfo);
 		body.setActivationState(body.DISABLE_DEACTIVATION);
 		dynamicsWorld.addRigidBody(body);
@@ -266,13 +237,13 @@ System.out.println("i: " + i);
 		CollisionConfiguration collisionConfiguration = new DefaultCollisionConfiguration();
 		CollisionDispatcher dispatcher = new CollisionDispatcher(collisionConfiguration);
 		Vector3f worldAabbMin = new Vector3f(-10000, -10000, -10000);
-		Vector3f worldAabbMax = new Vector3f(10000, 10000, 10000);
-		int maxProxies = 1024;
-		AxisSweep3 overlappingPairCache = new AxisSweep3(worldAabbMin, worldAabbMax, maxProxies);
+    Vector3f worldAabbMax = new Vector3f(10000, 10000, 10000);
+    int maxProxies = 1024;
+    AxisSweep3 overlappingPairCache = new AxisSweep3(worldAabbMin, worldAabbMax, maxProxies);
 		SequentialImpulseConstraintSolver solver = new SequentialImpulseConstraintSolver();
 		dynamicsWorld = new DiscreteDynamicsWorld(
-			dispatcher, overlappingPairCache, solver,
-			collisionConfiguration);
+        dispatcher, overlappingPairCache, solver,
+        collisionConfiguration);
 
 		System.out.println("Loading Files...");
 
@@ -295,7 +266,7 @@ System.out.println("i: " + i);
 		renderer = new MD5Renderer(giggio,false,true);
 		renderer.setSkeleton(giggio.baseSkeleton);
 
-		wallstex = new Texture(Gdx.files.internal("data/paper-grey.png"));
+		wallstex = new Texture(Gdx.files.internal("data/level1.png"));
 		wallstex.setWrap( TextureWrap.Repeat, TextureWrap.Repeat );
 
 		floortex = new Texture(Gdx.files.internal("data/marble-pink.png"));
@@ -310,12 +281,12 @@ System.out.println("i: " + i);
 		//crea pavimento per physics
 		CollisionShape groundShape = new BoxShape(new Vector3f(150.f, 1f, 150.f));
 		collisionShapes.add(groundShape);
-		Transform groundTransform = new Transform();
-		groundTransform.setIdentity();
-		groundTransform.origin.set(new Vector3f(0.f, -0.5f, 0.f));
+    Transform groundTransform = new Transform();
+    groundTransform.setIdentity();
+    groundTransform.origin.set(new Vector3f(0.f, -0.5f, 0.f));
 		DefaultMotionState myMotionState = new DefaultMotionState(groundTransform);
 		RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-			0f, myMotionState, groundShape, new Vector3f(0, 0, 0));
+          0f, myMotionState, groundShape, new Vector3f(0, 0, 0));
 		RigidBody body = new RigidBody(rbInfo);
 		dynamicsWorld.addRigidBody(body);
 
@@ -372,8 +343,8 @@ System.out.println("i: " + i);
 
 
 		// OpenGL enable functions
-		GL11 gl = Gdx.graphics.getGL11();
-		gl.glEnable(gl.GL_TEXTURE_2D);
+		GL11 gl = Gdx.graphics.getGL11(); 
+		gl.glEnable(gl.GL_TEXTURE_2D);  
 		gl.glEnable(gl.GL_DEPTH_TEST);
 		gl.glEnable(gl.GL_BLEND);
 
@@ -381,19 +352,19 @@ System.out.println("i: " + i);
 // gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
 
 		System.out.println("Starting...");
-	}
+  }
 
 	public void updatePhysics() {
 		dynamicsWorld.stepSimulation(1.f / 60.f, 10);
 
-		for(int j=dynamicsWorld.getNumCollisionObjects()-1; j>=0; j--) {
-
-			CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(j);
-			RigidBody body = RigidBody.upcast(obj);
-			if(body != null && body.getMotionState() != null) {
-				Transform trans = new Transform();
-				body.getMotionState().getWorldTransform(trans);
-				if(j == 1) {
+      for (int j=dynamicsWorld.getNumCollisionObjects()-1; j>=0; j--)
+      {
+        CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(j);
+        RigidBody body = RigidBody.upcast(obj);
+        if (body != null && body.getMotionState() != null) {
+          Transform trans = new Transform();
+          body.getMotionState().getWorldTransform(trans);
+					if(j == 1) {
 
 						// if it's the player, update position and camera
 						cam.position.x = trans.origin.x;
@@ -401,18 +372,19 @@ System.out.println("i: " + i);
 						cam.position.z = trans.origin.z -4f;
 						cam.lookAt(trans.origin.x,trans.origin.y,trans.origin.z);
 
+					}
 				}
-			}
       }
 
 		// check managed collision
 		int totpairs = dynamicsWorld.getPairCache().getNumOverlappingPairs();
+//		System.out.println("Pairs: " + totpairs);
 	}
 
   @Override
   public void render() {
 
-		GL11 gl = Gdx.graphics.getGL11();
+		GL11 gl = Gdx.graphics.getGL11(); 
 		float[] tmp = new float[16];
 
 		handleInput();
@@ -430,31 +402,22 @@ System.out.println("i: " + i);
 		gl.glTranslatef(vec.x, vec.y, vec.z);
 //		crate.render(gl.GL_TRIANGLES);
 		gl.glPopMatrix();
-<<<<<<< HEAD
 // ===================================				
-=======
->>>>>>> 70d82e61e16d4ec62336ca16eee2cc5aa5d89ffd
 
 		floortex.bind();
-		floor.render(gl.GL_TRIANGLES);
+					floor.render(gl.GL_TRIANGLES);
 
 		wallstex.bind();
-<<<<<<< HEAD
 					walls.render(gl.GL_TRIANGLES);
 //					walls_wire.render(gl.GL_TRIANGLES);
-=======
-		walls.render(gl.GL_TRIANGLES);
 
-		for(int j=dynamicsWorld.getNumCollisionObjects()-1; j>=1; j--) {
+    for (int j=dynamicsWorld.getNumCollisionObjects()-1; j>=1; j--) {
+    	CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(j);
+      RigidBody body = RigidBody.upcast(obj);
+      if (body != null && body.getMotionState() != null) {
 
-			CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(j);
-			RigidBody body = RigidBody.upcast(obj);
->>>>>>> 70d82e61e16d4ec62336ca16eee2cc5aa5d89ffd
-
-			if(body != null && body.getMotionState() != null) {
-
-				Transform trans = new Transform();
-				body.getMotionState().getWorldTransform(trans);
+        Transform trans = new Transform();
+        body.getMotionState().getWorldTransform(trans);
 
 				gl.glPushMatrix();
 

@@ -266,7 +266,7 @@ System.out.println("STEP #4 - Fine");
 		renderer = new MD5Renderer(giggio,false,true);
 		renderer.setSkeleton(giggio.baseSkeleton);
 
-		wallstex = new Texture(Gdx.files.internal("data/paper-grey.png"));
+		wallstex = new Texture(Gdx.files.internal("data/level1.png"));
 		wallstex.setWrap( TextureWrap.Repeat, TextureWrap.Repeat );
 
 		floortex = new Texture(Gdx.files.internal("data/marble-pink.png"));
