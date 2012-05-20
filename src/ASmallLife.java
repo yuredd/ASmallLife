@@ -1,81 +1,31 @@
 package com.yuredd.asmalllife;
+
+import com.yuredd.asmalllife.SceneManager;
+
 import com.badlogic.gdx.ApplicationListener;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.GL11;
-import com.badlogic.gdx.graphics.VertexAttribute;
-import com.badlogic.gdx.graphics.g3d.loaders.obj.ObjLoader;
-
-import com.badlogic.gdx.graphics.VertexAttributes.Usage;
-import com.badlogic.gdx.math.Vector3;
-
-import com.bulletphysics.collision.broadphase.AxisSweep3;
-import com.bulletphysics.collision.dispatch.CollisionConfiguration;
-import com.bulletphysics.collision.dispatch.CollisionDispatcher;
-import com.bulletphysics.collision.dispatch.CollisionObject;
-import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration;
-import com.bulletphysics.collision.shapes.BoxShape;
-import com.bulletphysics.collision.shapes.IndexedMesh;
-import com.bulletphysics.collision.shapes.CollisionShape;
-import com.bulletphysics.collision.shapes.SphereShape;
-import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
-import com.bulletphysics.dynamics.RigidBody;
-import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
-import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
-import com.bulletphysics.linearmath.DefaultMotionState;
-import com.bulletphysics.linearmath.Transform;
-import com.bulletphysics.util.ObjectArrayList;
-import javax.vecmath.Vector3f;
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
-import java.nio.IntBuffer;
-import java.nio.ByteBuffer;
-import com.sun.opengl.util.BufferUtil;
-
-
-import com.bulletphysics.collision.shapes.BvhTriangleMeshShape;
-import com.bulletphysics.collision.shapes.TriangleIndexVertexArray;
-
-import com.badlogic.gdx.graphics.g3d.loaders.md5.MD5Animation;
-import com.badlogic.gdx.graphics.g3d.loaders.md5.MD5AnimationInfo;
-import com.badlogic.gdx.graphics.g3d.loaders.md5.MD5Joints;
-import com.badlogic.gdx.graphics.g3d.loaders.md5.MD5Loader;
-import com.badlogic.gdx.graphics.g3d.loaders.md5.MD5Model;
-import com.badlogic.gdx.graphics.g3d.loaders.md5.MD5Renderer;
-
-import com.badlogic.gdx.math.collision.BoundingBox;
 
 public class ASmallLife implements ApplicationListener
 {
 
-	// collision world
-	DiscreteDynamicsWorld dynamicsWorld;
-	ObjectArrayList<CollisionShape> collisionShapes = new ObjectArrayList<CollisionShape>();
+	SceneManager sm = new SceneManager();
 
 	// camera, geometry and textures
 	private PerspectiveCamera cam;
-	private Mesh walls;
-	private Mesh walls_wire;
-	private Mesh floor;
+	private int walls;
+	private int floor;
 
-	private MD5Model giggio;
-	private MD5Joints giggioskeleton;
-	private MD5Animation giggiograt;
-	private MD5AnimationInfo giggiogratinfo;
-	private MD5Animation giggiowalk;
-	private MD5AnimationInfo giggiowalkinfo;
-	private MD5Renderer renderer;
-	private Mesh crate;
-	private Texture wallstex;
-	private Texture cratetex;
-	private Texture floortex;
-	private Texture giggiotex;
+	private int crate;
+	private int wallstex;
+	private int cratetex;
+	private int floortex;
+	private int giggiotex;
 
 	float movex = 0f;
 	float movey = 0f;
@@ -89,8 +39,6 @@ public class ASmallLife implements ApplicationListener
 		movex = 0f;
 		movey = 0f;
 		movez = 0f;
-		rotx = 0f;
-		roty = 0f;
 
     CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(1);
     RigidBody body = RigidBody.upcast(obj);
@@ -101,130 +49,35 @@ public class ASmallLife implements ApplicationListener
 		if(Gdx.input.isKeyPressed(Input.Keys.DOWN)) movez = -0.1f;
 		if(Gdx.input.isKeyPressed(Input.Keys.UP)) movez = 0.1f;
 
+		if(movex == 0 && movez > 0) {
+			roty = 0;
+		} else if(movex == 0 && movez < 0) {
+			roty = 180;
+		} else if(movex > 0 && movez == 0) {
+			roty = 90;
+		} else if(movex < 0 && movez == 0) {
+			roty = 270;
+
+		} else if(movex > 0 && movez > 0) {
+			roty = 45;
+		} else if(movex < 0 && movez < 0) {
+			roty = 180+45;
+		} else if(movex > 0 && movez < 0) {
+			roty = 90+45;
+		} else if(movex < 0 && movez > 0) {
+			roty = 270+45;
+		}
+
 		body.applyImpulse(new Vector3f(movex,0f,movez), new Vector3f(0f,0f,0f));
 
 	}
 
 
 
-
-	public void addMesh(Mesh mesh, float x, float y, float z) {
-
-System.out.println("V: " + mesh.getNumVertices() + " I: " + mesh.getNumIndices() + " S: " + mesh.getVertexSize());
-
-		TriangleIndexVertexArray jBulletMeshData = new TriangleIndexVertexArray();
-
-    IndexedMesh jBulletIndexedMesh = new IndexedMesh();
-    jBulletIndexedMesh.triangleIndexBase = ByteBuffer.allocate( mesh.getNumVertices() * 4 );
-    jBulletIndexedMesh.vertexBase = ByteBuffer.allocate( mesh.getNumVertices() * 3 * 4 );
-
-
-walls_wire = new Mesh(true, mesh.getNumVertices(), mesh.getNumVertices(), new VertexAttribute(Usage.Position, 3, "a_position"));    
-
-System.out.println("STEP #1 - Creazione Vertex Buffer");
-
-    FloatBuffer vertices = mesh.getVerticesBuffer();
-    vertices.rewind();
-
-    jBulletIndexedMesh.numVertices = mesh.getNumVertices();
-    jBulletIndexedMesh.vertexStride = 12; //3 verts * 4 bytes per.
-
-		float t1,t2,t3;
-		int i;
-
-float[] vertf = new float[mesh.getNumVertices() * 3];
-
-    for ( i = 0; i < mesh.getNumVertices(); i++ ) {
-      t1 = vertices.get();
-      jBulletIndexedMesh.vertexBase.putFloat( t1 );
-      t2 = vertices.get();
-      jBulletIndexedMesh.vertexBase.putFloat( t2 );
-      t3 = vertices.get();
-      jBulletIndexedMesh.vertexBase.putFloat( t3 );
-
-vertf[(i*3) + 0] = t1; vertf[(i*3) + 1] = t2; vertf[(i*3) + 2] = t3;
-
-      t3 = vertices.get();
-      t3 = vertices.get();
-      t3 = vertices.get();
-
-      t3 = vertices.get();
-      t3 = vertices.get();
-
-    }
-
-walls_wire.setVertices(vertf);
-
-System.out.println("CAP: " + vertices.position() + ":" + vertices.capacity() + " OF " + mesh.getNumVertices());
-
-System.out.println("v: " + (i/3));
-
-System.out.println("STEP #2 - Creazione Index Buffer");
-
-short[] indexs = new short[mesh.getNumVertices()];
-
-    jBulletIndexedMesh.numTriangles = mesh.getNumVertices() / 3;
-    jBulletIndexedMesh.triangleIndexStride = 12; //3 index entries * 4 bytes each.
-    for ( i = 0; i < mesh.getNumVertices(); i++ ) {
-    	jBulletIndexedMesh.triangleIndexBase.putInt( i );
-
-indexs[i] = (short) i;
-
-    }
-
-walls_wire.setIndices(indexs);
-
-System.out.println("i: " + i);
-
-    jBulletMeshData.addIndexedMesh( jBulletIndexedMesh );
-
-		boolean useQuantizedAabbCompression = true;
-
-		BvhTriangleMeshShape shape;
-
-System.out.println("STEP #3 - Creazione Physics Shape dalla Mesh");
-
-
-		shape = new BvhTriangleMeshShape(jBulletMeshData,true);
-		shape.recalcLocalAabb();
-
-		collisionShapes.add(shape);
-    Transform shapeTransform = new Transform();
-		Vector3f localInertia = new Vector3f(0, 0, 0);
-    shapeTransform.setIdentity();
-    shapeTransform.origin.set(new Vector3f(x, y, z));
-		DefaultMotionState myMotionState = new DefaultMotionState(shapeTransform);
-		RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-          0f, myMotionState, shape, localInertia);
-		RigidBody body = new RigidBody(rbInfo);
-		dynamicsWorld.addRigidBody(body);
-
-System.out.println("STEP #4 - Fine");
-
-	}
-
   public void addCrate(float x, float y, float z) {
 
-		addBox(x,y,z,0.5f,0.5f,0.5f,1f,0.4f);
-
-	}
-
-  public void addBox(float x, float y, float z, float lenx, float leny, float lenz, float mass, float inertia) {
-
-		CollisionShape shape = new BoxShape(new Vector3f(lenx, leny, lenz));
-//		CollisionShape shape = new SphereShape(0.25f);
-		collisionShapes.add(shape);
-    Transform shapeTransform = new Transform();
-		Vector3f localInertia = new Vector3f(inertia, inertia, inertia);
-//		shape.calculateLocalInertia(mass, localInertia);
-    shapeTransform.setIdentity();
-    shapeTransform.origin.set(new Vector3f(x, y, z));
-		DefaultMotionState myMotionState = new DefaultMotionState(shapeTransform);
-		RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-          mass, myMotionState, shape, localInertia);
-		RigidBody body = new RigidBody(rbInfo);
-		body.setActivationState(body.DISABLE_DEACTIVATION);
-		dynamicsWorld.addRigidBody(body);
+		int tid = sm.addBoxShape(0.5f, 0.5f, 0.5f);
+		sm.setShapePos(tid, x, y, z);
 
 	}
 
@@ -248,34 +101,18 @@ System.out.println("STEP #4 - Fine");
 		System.out.println("Loading Files...");
 
 		//carica mesh e tex
-		walls = ObjLoader.loadObj(Gdx.files.internal("data/level1.obj").read(), true);
-		floor = ObjLoader.loadObj(Gdx.files.internal("data/level1floor.obj").read(), true);
+		walls = sm.loadStillGeometry("data/level1.obj");
+		floor = sm.loadStillGeometry("data/level1floor.obj");
+		crate = sm.loadStillGeometry("data/objecttest.obj");
 
-		crate = ObjLoader.loadObj(Gdx.files.internal("data/objecttest.obj").read(), true);
+		sm.loadAnimModel("data/giggio.md5mesh");
+		sm.loadAnimation("data/giggio-grat.md5anim", 0);
+		sm.loadAnimation("data/giggio-walk.md5anim", 0);
 
-		giggio = MD5Loader.loadModel(Gdx.files.internal("data/giggio.md5mesh").read(), false);
-		giggiograt = MD5Loader.loadAnimation(Gdx.files.internal("data/giggio.md5anim").read());
-		giggiowalk = MD5Loader.loadAnimation(Gdx.files.internal("data/walk.md5anim").read());
-
-		giggioskeleton = new MD5Joints();
-		giggioskeleton.joints = new float[giggiograt.frames[0].joints.length];
-
-		giggiogratinfo = new MD5AnimationInfo(giggiograt.frames.length,giggiograt.secondsPerFrame);
-		giggiowalkinfo = new MD5AnimationInfo(giggiowalk.frames.length,giggiowalk.secondsPerFrame);
-
-		renderer = new MD5Renderer(giggio,false,true);
-		renderer.setSkeleton(giggio.baseSkeleton);
-
-		wallstex = new Texture(Gdx.files.internal("data/level1.png"));
-		wallstex.setWrap( TextureWrap.Repeat, TextureWrap.Repeat );
-
-		floortex = new Texture(Gdx.files.internal("data/marble-pink.png"));
-		floortex.setWrap( TextureWrap.Repeat, TextureWrap.Repeat );
-
-		cratetex = new Texture(Gdx.files.internal("data/textest.png"));
-		cratetex.setWrap( TextureWrap.Repeat, TextureWrap.Repeat );
-
-		giggiotex = new Texture(Gdx.files.internal("data/giggio.png"));
+		wallstex = sm.loadTexture("data/level1.png");
+		floortex = sm.loadTexture("data/marble-pink.png");
+		cratetex = sm.loadTexture("data/textest.png");
+		giggiotex = sm.loadTexture("data/giggio.png");
 
 
 		//crea pavimento per physics
@@ -339,7 +176,7 @@ System.out.println("STEP #4 - Fine");
 		addCrate(4f,4f,5);
 
 
-		addMesh(walls, 0, 0, 0);
+		addMesh(sm.listMesh.get(walls), 0, 0, 0);
 
 
 		// OpenGL enable functions
@@ -394,22 +231,24 @@ System.out.println("STEP #4 - Fine");
 
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
 
+// ===================================
 // test mouse pointer ================
+// ===================================
+
 		Vector3 vec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
 		cam.unproject(vec);
-		cratetex.bind();
+//		cratetex.bind();
 		gl.glPushMatrix();
 		gl.glTranslatef(vec.x, vec.y, vec.z);
 //		crate.render(gl.GL_TRIANGLES);
 		gl.glPopMatrix();
 // ===================================				
 
-		floortex.bind();
-					floor.render(gl.GL_TRIANGLES);
+		sm.bindTexture(floortex);
+		sm.renderMesh(floor);
 
-		wallstex.bind();
-					walls.render(gl.GL_TRIANGLES);
-//					walls_wire.render(gl.GL_TRIANGLES);
+		sm.bindTexture(wallstex);
+		sm.renderMesh(walls);
 
     for (int j=dynamicsWorld.getNumCollisionObjects()-1; j>=1; j--) {
     	CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(j);
@@ -430,27 +269,27 @@ System.out.println("STEP #4 - Fine");
 				if(j == 1) {
 
 					gl.glRotatef(-90f,1f,0f,0f);
-					giggiotex.bind();
+					gl.glRotatef(roty,0f,0f,1f);
+					sm.bindTexture(giggiotex);
 
-					if(movex + movez == 0) {
-						giggiogratinfo.update(Gdx.graphics.getDeltaTime());
-						MD5Animation.interpolate(giggiograt.frames[giggiogratinfo.getCurrentFrame()], giggiograt.frames[giggiogratinfo.getNextFrame()], 
-						 giggioskeleton, giggiogratinfo.getInterpolation());
+
+					if(movex == 0 && movez == 0) {
+
+						sm.setAnimation(0,0);
+
 					} else {
-						giggiowalkinfo.update(Gdx.graphics.getDeltaTime());
-						MD5Animation.interpolate(giggiowalk.frames[giggiowalkinfo.getCurrentFrame()], giggiowalk.frames[giggiowalkinfo.getNextFrame()], 
-						 giggioskeleton, giggiowalkinfo.getInterpolation());
-					}
-					renderer.setSkeleton(giggioskeleton);
-					renderer.render();
 
-					cratetex.bind();
+						sm.setAnimation(0,1);
+
+					}
+
+					sm.renderActor(0);
+					sm.bindTexture(cratetex);
 
 				} else {
 
-					cratetex.bind();
-
-					crate.render(gl.GL_TRIANGLES);
+					sm.bindTexture(cratetex);
+					sm.renderMesh(crate);
 
 				}
 

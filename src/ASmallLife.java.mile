@@ -61,7 +61,6 @@ public class ASmallLife implements ApplicationListener
 	// camera, geometry and textures
 	private PerspectiveCamera cam;
 	private Mesh walls;
-	private Mesh walls_wire;
 	private Mesh floor;
 
 	private MD5Model giggio;
@@ -89,8 +88,6 @@ public class ASmallLife implements ApplicationListener
 		movex = 0f;
 		movey = 0f;
 		movez = 0f;
-		rotx = 0f;
-		roty = 0f;
 
     CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(1);
     RigidBody body = RigidBody.upcast(obj);
@@ -101,6 +98,25 @@ public class ASmallLife implements ApplicationListener
 		if(Gdx.input.isKeyPressed(Input.Keys.DOWN)) movez = -0.1f;
 		if(Gdx.input.isKeyPressed(Input.Keys.UP)) movez = 0.1f;
 
+		if(movex == 0 && movez > 0) {
+			roty = 0;
+		} else if(movex == 0 && movez < 0) {
+			roty = 180;
+		} else if(movex > 0 && movez == 0) {
+			roty = 90;
+		} else if(movex < 0 && movez == 0) {
+			roty = 270;
+
+		} else if(movex > 0 && movez > 0) {
+			roty = 45;
+		} else if(movex < 0 && movez < 0) {
+			roty = 180+45;
+		} else if(movex > 0 && movez < 0) {
+			roty = 90+45;
+		} else if(movex < 0 && movez > 0) {
+			roty = 270+45;
+		}
+
 		body.applyImpulse(new Vector3f(movex,0f,movez), new Vector3f(0f,0f,0f));
 
 	}
@@ -110,18 +126,11 @@ public class ASmallLife implements ApplicationListener
 
 	public void addMesh(Mesh mesh, float x, float y, float z) {
 
-System.out.println("V: " + mesh.getNumVertices() + " I: " + mesh.getNumIndices() + " S: " + mesh.getVertexSize());
-
 		TriangleIndexVertexArray jBulletMeshData = new TriangleIndexVertexArray();
 
     IndexedMesh jBulletIndexedMesh = new IndexedMesh();
     jBulletIndexedMesh.triangleIndexBase = ByteBuffer.allocate( mesh.getNumVertices() * 4 );
     jBulletIndexedMesh.vertexBase = ByteBuffer.allocate( mesh.getNumVertices() * 3 * 4 );
-
-
-walls_wire = new Mesh(true, mesh.getNumVertices(), mesh.getNumVertices(), new VertexAttribute(Usage.Position, 3, "a_position"));    
-
-System.out.println("STEP #1 - Creazione Vertex Buffer");
 
     FloatBuffer vertices = mesh.getVerticesBuffer();
     vertices.rewind();
@@ -132,8 +141,6 @@ System.out.println("STEP #1 - Creazione Vertex Buffer");
 		float t1,t2,t3;
 		int i;
 
-float[] vertf = new float[mesh.getNumVertices() * 3];
-
     for ( i = 0; i < mesh.getNumVertices(); i++ ) {
       t1 = vertices.get();
       jBulletIndexedMesh.vertexBase.putFloat( t1 );
@@ -142,48 +149,22 @@ float[] vertf = new float[mesh.getNumVertices() * 3];
       t3 = vertices.get();
       jBulletIndexedMesh.vertexBase.putFloat( t3 );
 
-vertf[(i*3) + 0] = t1; vertf[(i*3) + 1] = t2; vertf[(i*3) + 2] = t3;
+      t3 = vertices.get(); t3 = vertices.get(); t3 = vertices.get();
 
-      t3 = vertices.get();
-      t3 = vertices.get();
-      t3 = vertices.get();
-
-      t3 = vertices.get();
-      t3 = vertices.get();
+      t3 = vertices.get(); t3 = vertices.get();
 
     }
-
-walls_wire.setVertices(vertf);
-
-System.out.println("CAP: " + vertices.position() + ":" + vertices.capacity() + " OF " + mesh.getNumVertices());
-
-System.out.println("v: " + (i/3));
-
-System.out.println("STEP #2 - Creazione Index Buffer");
-
-short[] indexs = new short[mesh.getNumVertices()];
 
     jBulletIndexedMesh.numTriangles = mesh.getNumVertices() / 3;
     jBulletIndexedMesh.triangleIndexStride = 12; //3 index entries * 4 bytes each.
     for ( i = 0; i < mesh.getNumVertices(); i++ ) {
-    	jBulletIndexedMesh.triangleIndexBase.putInt( i );
 
-indexs[i] = (short) i;
+    	jBulletIndexedMesh.triangleIndexBase.putInt( i );
 
     }
 
-walls_wire.setIndices(indexs);
-
-System.out.println("i: " + i);
-
     jBulletMeshData.addIndexedMesh( jBulletIndexedMesh );
-
-		boolean useQuantizedAabbCompression = true;
-
 		BvhTriangleMeshShape shape;
-
-System.out.println("STEP #3 - Creazione Physics Shape dalla Mesh");
-
 
 		shape = new BvhTriangleMeshShape(jBulletMeshData,true);
 		shape.recalcLocalAabb();
@@ -198,9 +179,6 @@ System.out.println("STEP #3 - Creazione Physics Shape dalla Mesh");
           0f, myMotionState, shape, localInertia);
 		RigidBody body = new RigidBody(rbInfo);
 		dynamicsWorld.addRigidBody(body);
-
-System.out.println("STEP #4 - Fine");
-
 	}
 
   public void addCrate(float x, float y, float z) {
@@ -254,8 +232,8 @@ System.out.println("STEP #4 - Fine");
 		crate = ObjLoader.loadObj(Gdx.files.internal("data/objecttest.obj").read(), true);
 
 		giggio = MD5Loader.loadModel(Gdx.files.internal("data/giggio.md5mesh").read(), false);
-		giggiograt = MD5Loader.loadAnimation(Gdx.files.internal("data/giggio.md5anim").read());
-		giggiowalk = MD5Loader.loadAnimation(Gdx.files.internal("data/walk.md5anim").read());
+		giggiograt = MD5Loader.loadAnimation(Gdx.files.internal("data/giggio-grat.md5anim").read());
+		giggiowalk = MD5Loader.loadAnimation(Gdx.files.internal("data/giggio-walk.md5anim").read());
 
 		giggioskeleton = new MD5Joints();
 		giggioskeleton.joints = new float[giggiograt.frames[0].joints.length];
@@ -394,7 +372,10 @@ System.out.println("STEP #4 - Fine");
 
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
 
+// ===================================
 // test mouse pointer ================
+// ===================================
+
 		Vector3 vec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
 		cam.unproject(vec);
 		cratetex.bind();
@@ -409,7 +390,6 @@ System.out.println("STEP #4 - Fine");
 
 		wallstex.bind();
 					walls.render(gl.GL_TRIANGLES);
-//					walls_wire.render(gl.GL_TRIANGLES);
 
     for (int j=dynamicsWorld.getNumCollisionObjects()-1; j>=1; j--) {
     	CollisionObject obj = dynamicsWorld.getCollisionObjectArray().getQuick(j);
@@ -430,9 +410,10 @@ System.out.println("STEP #4 - Fine");
 				if(j == 1) {
 
 					gl.glRotatef(-90f,1f,0f,0f);
+					gl.glRotatef(roty,0f,0f,1f);
 					giggiotex.bind();
 
-					if(movex + movez == 0) {
+					if(movex == 0 && movez == 0) {
 						giggiogratinfo.update(Gdx.graphics.getDeltaTime());
 						MD5Animation.interpolate(giggiograt.frames[giggiogratinfo.getCurrentFrame()], giggiograt.frames[giggiogratinfo.getNextFrame()], 
 						 giggioskeleton, giggiogratinfo.getInterpolation());
